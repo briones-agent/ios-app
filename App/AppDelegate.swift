@@ -13,6 +13,12 @@
                 }
             #endif
 
+            // Expo brownfield demo: bootstrap the React Native runtime and
+            // optionally auto-present the Reading List Inspector (for the
+            // recording flow).
+            ExpoIntegration.bootstrap()
+            ExpoIntegration.scheduleAutoPresentIfRequested()
+
             return true
         }
 
