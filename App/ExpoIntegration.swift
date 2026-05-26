@@ -41,22 +41,35 @@
         }
 
         /// Demo helper: when launched with `-WallabagExpoAutoPresent YES`,
-        /// replace the window's root view controller with the Reading List
-        /// Inspector so the integration is recordable without UI automation.
+        /// present the Reading List Inspector as a full-screen modal so the
+        /// integration is recordable without UI automation. Presenting (vs.
+        /// taking over the rootVC) keeps the host UI intact and makes the
+        /// Done button work naturally.
         @objc public static func scheduleAutoPresentIfRequested() {
             guard UserDefaults.standard.bool(forKey: "WallabagExpoAutoPresent") else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                takeOverWindow()
+                presentOnKeyWindow()
             }
         }
 
-        private static func takeOverWindow() {
+        private static func presentOnKeyWindow() {
             guard let scene = UIApplication.shared.connectedScenes
                     .compactMap({ $0 as? UIWindowScene }).first,
-                  let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first
+                  let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first,
+                  let root = window.rootViewController
             else { return }
-            window.rootViewController = makeInspectorViewController()
-            window.makeKeyAndVisible()
+            // If the host has already presented something (e.g. a system
+            // permission alert), dismiss it first so the Reading List
+            // Inspector becomes the top-most modal.
+            var presenter = root
+            while let next = presenter.presentedViewController { presenter = next }
+            if presenter !== root {
+                presenter.dismiss(animated: false) {
+                    root.present(makeInspectorViewController(), animated: true)
+                }
+            } else {
+                root.present(makeInspectorViewController(), animated: true)
+            }
         }
 
         private static func seedSharedState() {
