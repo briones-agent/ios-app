@@ -1,3 +1,28 @@
+# wallabag iOS + React Native
+
+This is an experimental fork of the official [wallabag iOS](https://github.com/wallabag/ios-app) with the sole purpose of testing brownfield support for Expo and React Native in large native-first codebases. Its commits serve as a reference for anyone interested in integrating React Native into an existing iOS app, especially those that don't want to refactor the whole project structure to accommodate React Native.
+
+This project uses Expo's brownfield isolated approach (Expo SDK 56 canary — `expo-brownfield@56.0.16-canary-20260526-6cd5e37`) with **bidirectional shared state**: wallabag publishes a mock reading-list snapshot (unread count, total count, sync status, last-synced timestamp, article list) into the `expo-brownfield` shared-state KV store, and the embedded React Native "Reading List Inspector" screen renders it reactively via `useSharedState`. Two RN buttons ("Mark next as read", "Sync now") send messages back through `expo-brownfield`'s messaging channel; native updates the shared state and RN sees the new values without re-rendering.
+
+This card also validates the `expo-image`/`SDWebImage` SPM-deps fix from the canary release — the embedded RN screen renders real images via `expo-image` inside a brownfield framework.
+
+## Integration steps
+
+Check commits for detailed steps, full instructions can be found in the [expo-brownfield documentation](https://docs.expo.dev/brownfield/overview/).
+
+1. **Create the Expo app**: `npx create-expo-app expo-app --template default@canary-sdk-56`.
+2. **Install expo-brownfield**: `cd expo-app && npm install --legacy-peer-deps expo-brownfield@56.0.16-canary-20260526-6cd5e37 expo-build-properties`. Configure the plugin in `app.json`, then `npx expo-brownfield build:ios --release --package WallabagExpoArtifacts --verbose`.
+3. **Add React Native view**: Add the local Swift Package to `wallabag.xcodeproj`, bump `IPHONEOS_DEPLOYMENT_TARGET` to 17.0, link the single aggregate product `WallabagExpoArtifacts-release` to the wallabag target. See `integrate_expo.rb` for the idempotent xcodeproj automation.
+4. **Wire shared state**: Native side calls `BrownfieldState.set(key, value)` + `BrownfieldMessaging.addListener`. RN side uses `useSharedState` + `sendMessage`. See `App/ExpoIntegration.swift` and `expo-app/src/app/index.tsx`.
+
+## Build prereqs
+
+- Xcode 16+ with the iOS 17 simulator runtime.
+- Wallabag expects a `Config.xcconfig` at the repo root (gitignored upstream — populate with your signing config or leave empty for simulator-only builds).
+
+<details>
+<summary>wallabag 2 official iOS</summary>
+
 > [!CAUTION]
 > This repository is no longer accepting contributions.
 > The original maintainer has shifted focus to a closed-source version (version 7.6 onwards), and the wallabag core team will not be overseeing further development of this open-source repository at that time.
@@ -52,3 +77,5 @@ wallabag app is a free and open source project developed by volunteers. Any cont
 
 This application is released under MIT (see [LICENSE](LICENSE)).
 Some of the used libraries are released under different licenses.
+
+</details>
